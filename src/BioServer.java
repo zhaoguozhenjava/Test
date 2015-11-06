@@ -9,47 +9,36 @@ public class BioServer {
     public static void main(String[] args) throws IOException {
         int port = 8001;
         ServerSocket server = new ServerSocket(port);
-        Socket socket = server.accept();
-        StringBuffer sb = new StringBuffer();
-////        Reader reader = new InputStreamReader(socket.getInputStream());
-////        char[] buffer = new char[64];
-////        while (reader.read(buffer) != -1) {
-////            String temp = new String(buffer);
-////            int index;
-////            if ((index = temp.indexOf("end")) != -1) {
-////                sb.append(temp.substring(0, index));
-////                break;
-////            }
-////            System.out.println(new String(buffer));
-////            if ("end".equals(new String(buffer))) {
-////                break;
-////            }
-////            sb.append(new String(buffer));
-////        }
-////        reader.close();
-        InputStream in = socket.getInputStream();
-        byte[] buffer = new byte[64];
-        while (in.read(buffer) != -1) {
-            String temp = new String(buffer);
-            int index;
-            if ((index = temp.indexOf("end")) != -1) {
-                sb.append(temp.substring(0, index));
-                break;
-            }
-//            System.out.println(new String(buffer));
-            if ("end".equals(new String(buffer))) {
-                break;
-            }
-            sb.append(new String(buffer));
+        while (true) {
+            Socket socket = server.accept();
+
+            new Thread(new Task(socket)).start();
+//            StringBuffer sb = new StringBuffer();
+//            InputStream in = socket.getInputStream();
+//            byte[] buffer = new byte[64];
+//            while (in.read(buffer) != -1) {
+//                String temp = new String(buffer);
+//                int index;
+//                if ((index = temp.indexOf("end")) != -1) {
+//                    sb.append(temp.substring(0, index));
+//                    break;
+//                }
+//                if ("end".equals(new String(buffer))) {
+//                    break;
+//                }
+//                sb.append(new String(buffer));
+//            }
+//            System.out.println(sb);
+//            OutputStream out = socket.getOutputStream();
+//            out.write("hello client".getBytes());
+//            in.close();
+//            out.close();
+//            socket.close();
         }
-        System.out.println(sb);
-        OutputStream out = socket.getOutputStream();
-        out.write("hello client".getBytes());
-        in.close();
-        out.close();
-        socket.close();
-        server.close();
+//        server.close();
+
     }
+
 //    public static void main(String args[]) throws IOException {
 //        //为了简单起见，所有的异常信息都往外抛
 //        int port = 8899;
@@ -83,4 +72,59 @@ public class BioServer {
 //        socket.close();
 //        server.close();
 //    }
+    public class Inner {
+
+    }
+}
+
+class Task implements Runnable {
+    Socket socket;
+
+    public Task(Socket socket) {
+        super();
+        this.socket = socket;
+    }
+
+    @SuppressWarnings("null")
+    @Override
+    public void run() {
+        try {
+            this.handSocket();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @SuppressWarnings("resource")
+    private void handSocket() throws Exception {
+        StringBuffer sb = new StringBuffer();
+        InputStream in = null;
+        try {
+            in = this.socket.getInputStream();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        byte[] buffer = new byte[64];
+        while (in.read(buffer) != -1) {
+            String temp = new String(buffer);
+            int index;
+            if ((index = temp.indexOf("end")) != -1) {
+                sb.append(temp.substring(0, index));
+                break;
+            }
+            if ("end".equals(new String(buffer))) {
+                break;
+            }
+            sb.append(new String(buffer));
+        }
+        System.out.println(sb);
+        OutputStream out = null;
+        out = this.socket.getOutputStream();
+        out.write("hello client".getBytes());
+        in.close();
+        out.close();
+        this.socket.close();
+    }
+
 }

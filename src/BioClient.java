@@ -12,14 +12,8 @@ public class BioClient {
         int port = 8001;
         Socket socket = new Socket(ip, port);
         OutputStream out = socket.getOutputStream();
-        out.write("hell server呵呵".getBytes());
+        out.write("hell server呵呵11111".getBytes());
         out.write("end".getBytes());
-//        InputStream in = socket.getInputStream();
-//        byte[] buffer = new byte[64];
-//        while (in.read(buffer) != -1) {
-//            System.out.println(new String(buffer));
-//        }
-//        in.close();
 
         Reader reader = new InputStreamReader(socket.getInputStream());
         char[] buffer = new char[64];
