@@ -1,154 +1,79 @@
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
 import java.util.Iterator;
 
 public class NServer {
+    //通道管理器
+    private Selector selector;
 
-    // 用于检测所有的Channel状态的selector
-    private Selector selector = null;
-    static final int PORT = 30000;
-    // 定义实现编码、解码的字符串集对象
-    private Charset charse = Charset.forName("GBK");
-
-    public void init() throws IOException {
+    //获取一个ServerSocket通道，并初始化通道
+    public NServer init(int port) throws IOException {
+        //获取一个ServerSocket通道
+        ServerSocketChannel serverChannel = ServerSocketChannel.open();
+        serverChannel.configureBlocking(false);
+        serverChannel.socket().bind(new InetSocketAddress(port));
+        //获取通道管理器
         this.selector = Selector.open();
-        // 通过open方法来打开一个未绑定的ServerSocketChannel是咧
-        ServerSocketChannel server = ServerSocketChannel.open();
-        InetSocketAddress isa = new InetSocketAddress("127.0.0.1", NServer.PORT);
-        // 将该ServerSocketChannel绑定到指定的IP地址
-        server.bind(isa);
-        // 设置serverSocket已非阻塞方式工作
-        server.configureBlocking(false);
-        // 将server注册到指定的selector对象
-        server.register(this.selector, SelectionKey.OP_ACCEPT);
-        while (true) {
-            if (this.selector.select() < 0) {
-                continue;
-            }
-            // 一次处理selector上的每个选择的SelectionKey
-            Iterator<SelectionKey> it = this.selector.selectedKeys().iterator();
-            if (it.hasNext()) {
-                SelectionKey sk = it.next();
-                // 从selector上已选择的Kye集中删除正在处理的SelectionKey
-                it.remove();
-                // 如果sk对应的Channel包含客户端的连接请求
-                if (sk.isAcceptable()) {
-                    // 调用accept方法接收连接，产生服务器段的SocketChennal
-                    SocketChannel sc = server.accept();
-                    // 设置采用非阻塞模式
-                    sc.configureBlocking(false);
-                    // 将该SocketChannel注册到selector
-                    sc.register(this.selector, SelectionKey.OP_READ);
-                }
-                // 如果sk对应的Channel有数据需要读取
-                if (sk.isReadable()) {
-                    // 获取该SelectionKey对银行的Channel，该Channel中有刻度的数据
-                    SocketChannel sc = (SocketChannel) sk.channel();
-                    // 定义备注执行读取数据源的ByteBuffer
-                    ByteBuffer buff = ByteBuffer.allocate(1024);
-                    String content = "";
-                    // 开始读取数据
-                    try {
-                        while (sc.read(buff) > 0) {
-                            buff.flip();
-                            content += this.charse.decode(buff);
-                        }
-                        System.out.println("读取的数据：" + content);
-                        // 将sk对应的Channel设置成准备下一次读取
-                        sk.interestOps(SelectionKey.OP_READ);
-                    }
-                    // 如果捕获到该sk对银行的Channel出现了异常，表明
-                    // Channel对应的Client出现了问题，所以从Selector中取消
-                    catch (IOException io) {
-                        // 从Selector中删除指定的SelectionKey
-                        sk.cancel();
-                        if (sk.channel() != null) {
-                            sk.channel().close();
-                        }
-                    }
-                    // 如果content的长度大于0,则连天信息不为空
-                    if (content.length() > 0) {
-                        // 遍历selector里注册的所有SelectionKey
-                        for (SelectionKey key : this.selector.keys()) {
-                            // 获取该key对应的Channel
-                            Channel targerChannel = key.channel();
-                            // 如果该Channel是SocketChannel对象
-                            if (targerChannel instanceof SocketChannel) {
-                                // 将读取到的内容写入该Channel中
-                                SocketChannel dest = (SocketChannel) targerChannel;
-                                dest.write(this.charse.encode(content));
-                            }
-                        }
-                    }
-                }
-            }
-//            for (SelectionKey sk : this.selector.selectedKeys()) {
-//                // 从selector上已选择的Kye集中删除正在处理的SelectionKey
-//                this.selector.selectedKeys().remove(sk);
-//                // 如果sk对应的Channel包含客户端的连接请求
-//                if (sk.isAcceptable()) {
-//                    // 调用accept方法接收连接，产生服务器段的SocketChennal
-//                    SocketChannel sc = server.accept();
-//                    // 设置采用非阻塞模式
-//                    sc.configureBlocking(false);
-//                    // 将该SocketChannel注册到selector
-//                    sc.register(this.selector, SelectionKey.OP_READ);
-//                }
-//                // 如果sk对应的Channel有数据需要读取
-//                if (sk.isReadable()) {
-//                    // 获取该SelectionKey对银行的Channel，该Channel中有刻度的数据
-//                    SocketChannel sc = (SocketChannel) sk.channel();
-//                    // 定义备注执行读取数据源的ByteBuffer
-//                    ByteBuffer buff = ByteBuffer.allocate(1024);
-//                    String content = "";
-//                    // 开始读取数据
-//                    try {
-//                        while (sc.read(buff) > 0) {
-//                            buff.flip();
-//                            content += this.charse.decode(buff);
-//                        }
-//                        System.out.println("读取的数据：" + content);
-//                        // 将sk对应的Channel设置成准备下一次读取
-//                        sk.interestOps(SelectionKey.OP_READ);
-//                    }
-//                    // 如果捕获到该sk对银行的Channel出现了异常，表明
-//                    // Channel对应的Client出现了问题，所以从Selector中取消
-//                    catch (IOException io) {
-//                        // 从Selector中删除指定的SelectionKey
-//                        sk.cancel();
-//                        if (sk.channel() != null) {
-//                            sk.channel().close();
-//                        }
-//                    }
-//                    // 如果content的长度大于0,则连天信息不为空
-//                    if (content.length() > 0) {
-//                        // 遍历selector里注册的所有SelectionKey
-//                        for (SelectionKey key : this.selector.keys()) {
-//                            // 获取该key对应的Channel
-//                            Channel targerChannel = key.channel();
-//                            // 如果该Channel是SocketChannel对象
-//                            if (targerChannel instanceof SocketChannel) {
-//                                // 将读取到的内容写入该Channel中
-//                                SocketChannel dest = (SocketChannel) targerChannel;
-//                                dest.write(this.charse.encode(content));
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-        }
+        //将通道管理器与通道绑定，并为该通道注册SelectionKey.OP_ACCEPT事件，
+        //只有当该事件到达时，Selector.select()会返回，否则一直阻塞。
+        serverChannel.register(this.selector, SelectionKey.OP_ACCEPT);
+        return this;
+    }
 
+    public void listen() throws IOException {
+        System.out.println("服务器端启动成功");
+
+        //使用轮询访问selector
+        while (true) {
+            //当有注册的事件到达时，方法返回，否则阻塞。
+            this.selector.select();
+
+            //获取selector中的迭代器，选中项为注册的事件
+            Iterator<SelectionKey> ite = this.selector.selectedKeys()
+                .iterator();
+
+            while (ite.hasNext()) {
+                SelectionKey key = ite.next();
+                //删除已选key，防止重复处理
+                ite.remove();
+                //客户端请求连接事件
+                if (key.isAcceptable()) {
+                    ServerSocketChannel server = (ServerSocketChannel) key
+                        .channel();
+                    //获得客户端连接通道
+                    SocketChannel channel = server.accept();
+                    channel.configureBlocking(false);
+                    //向客户端发消息
+                    channel.write(ByteBuffer.wrap(new String(
+                        "send message to client").getBytes()));
+                    //在与客户端连接成功后，为客户端通道注册SelectionKey.OP_READ事件。
+                    channel.register(this.selector, SelectionKey.OP_READ);
+
+                    System.out.println("客户端请求连接事件");
+                } else if (key.isReadable()) {//有可读数据事件
+                    //获取客户端传输数据可读取消息通道。
+                    SocketChannel channel = (SocketChannel) key.channel();
+                    //创建读取数据缓冲器
+                    ByteBuffer buffer = ByteBuffer.allocate(10);
+                    channel.read(buffer);
+                    byte[] data = buffer.array();
+                    String message = new String(data);
+
+                    System.out.println("receive message from client, size:"
+                        + buffer.position() + " msg: " + message);
+//                    ByteBuffer outbuffer = ByteBuffer.wrap(("server.".concat(msg)).getBytes());
+//                    channel.write(outbuffer);
+                }
+            }
+        }
     }
 
     public static void main(String[] args) throws IOException {
-        new NServer().init();
+        new NServer().init(9981).listen();
     }
-
 }
